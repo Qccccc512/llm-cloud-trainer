@@ -1,0 +1,39 @@
+# 评估基础配置
+model_name_or_path: Qwen/Qwen2.5-0.5B-Instruct
+adapter_name_or_path:
+finetuning_type: lora
+template: qwen
+
+stage: sft
+do_train: false
+do_eval: true
+do_predict: false
+
+# 数据集
+dataset: identity
+eval_dataset: identity
+dataset_dir: /app/data
+cutoff_len: 1024
+
+# 输出
+output_dir: /app/output/default_eval/eval
+overwrite_output_dir: true
+
+# 评估
+per_device_eval_batch_size: 4
+max_samples: 200
+seed: 42
+logging_steps: 10
+
+# 生成相关默认值（用于预测）
+do_sample: true
+temperature: 0.95
+top_p: 0.7
+top_k: 50
+num_beams: 1
+max_length: 1024
+max_new_tokens: 1024
+repetition_penalty: 1.0
+length_penalty: 1.0
+default_system:
+skip_special_tokens: true

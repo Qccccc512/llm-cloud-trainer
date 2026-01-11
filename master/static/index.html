@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLM Cloud Trainer</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --subtext: #475569;
+      --border: #e2e8f0;
+      --accent: #6c5ce7;
+      --accent-weak: #ede9fe;
+      --success: #16a34a;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Space Grotesk', 'Noto Sans SC', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 240px;
+      background: #fff;
+      border-right: 1px solid var(--border);
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+    .logo { font-weight: 700; font-size: 18px; color: var(--accent); padding: 8px 12px; border-radius: 12px; background: var(--accent-weak); }
+    .nav { display: flex; flex-direction: column; gap: 6px; }
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--text);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .nav-btn:hover { background: var(--accent-weak); border-color: var(--accent-weak); }
+    .nav-btn.active { background: var(--accent); color: #fff; box-shadow: 0 8px 20px rgba(108, 92, 231, 0.15); }
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .topbar {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .top-title { font-size: 16px; font-weight: 600; color: var(--text); }
+    .auth-actions { display: flex; align-items: center; gap: 10px; }
+    .btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      padding: 9px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn.primary:hover { box-shadow: 0 10px 24px rgba(108, 92, 231, 0.25); }
+    .btn.ghost { background: transparent; }
+    .content { padding: 20px 24px 32px; display: flex; flex-direction: column; gap: 16px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
+    }
+    .card-title { font-size: 15px; font-weight: 700; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+    .card-sub { color: var(--subtext); font-size: 13px; margin-bottom: 12px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .label { font-weight: 600; font-size: 13px; color: var(--subtext); }
+    .input, .select, textarea {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease;
+      background: #fff;
+      color: var(--text);
+    }
+    .input:focus, .select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.15); }
+    .table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .table th, .table td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+    .table th { color: var(--subtext); font-weight: 600; }
+    .tag { display: inline-flex; align-items: center; padding: 4px 8px; border-radius: 999px; font-weight: 600; font-size: 12px; }
+    .tag.idle { background: #ecfdf3; color: #15803d; }
+    .tag.busy { background: #eef2ff; color: #4f46e5; }
+    .tag.offline { background: #fef2f2; color: #b91c1c; }
+    .tag.success { background: #ecfdf3; color: #15803d; }
+    .tag.pending { background: #fff7ed; color: #c2410c; }
+    .tag.running { background: #eef2ff; color: #4338ca; }
+    .tag.failed { background: #fef2f2; color: #b91c1c; }
+    .tag.stopped { background: #f1f5f9; color: #475569; }
+    .pill { background: var(--accent-weak); color: var(--accent); padding: 4px 10px; border-radius: 999px; font-weight: 600; font-size: 12px; }
+    .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .divider { height: 1px; background: var(--border); margin: 14px 0; }
+    .alert { padding: 10px 12px; border-radius: 10px; font-weight: 600; font-size: 13px; }
+    .alert.success { background: #ecfdf3; color: #15803d; }
+    .alert.error { background: #fef2f2; color: #b91c1c; }
+    .panel { display: flex; gap: 16px; flex-wrap: wrap; }
+    .metric { background: #f8f9ff; border: 1px solid #e2e8f0; padding: 10px 12px; border-radius: 10px; min-width: 120px; }
+    .metric .val { font-weight: 700; color: var(--accent); font-size: 16px; }
+    textarea { resize: vertical; min-height: 120px; }
+    .auth-pop {
+      position: absolute;
+      top: 72px;
+      right: 24px;
+      width: 320px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+      z-index: 20;
+    }
+    .section-title { font-size: 18px; font-weight: 700; margin: 0 0 12px; }
+    .section-desc { color: var(--subtext); margin: 0 0 16px; font-size: 13px; }
+    .pill-bar { display: inline-flex; align-items: center; gap: 8px; }
+    @media (max-width: 1100px) {
+      .sidebar { position: fixed; z-index: 30; transform: translateX(-100%); transition: transform 0.2s ease; }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="layout">
+    <aside class="sidebar" :class="{open: sidebarOpen}">
+      <div class="logo">LLM Cloud Trainer</div>
+      <div class="nav">
+        <button class="nav-btn" :class="{active: activeTab==='resources'}" @click="activeTab='resources'">1. 当前平台在线资源</button>
+        <button class="nav-btn" :class="{active: activeTab==='train'}" @click="activeTab='train'">2. 模型训练</button>
+        <button class="nav-btn" :class="{active: activeTab==='mymodels'}" @click="activeTab='mymodels'">3. 我的模型</button>
+        <button class="nav-btn" :class="{active: activeTab==='eval'}" @click="activeTab='eval'">4. 模型评测</button>
+        <button class="nav-btn" :class="{active: activeTab==='deploy'}" @click="activeTab='deploy'">5. 在线部署与推理</button>
+        <button class="nav-btn" :class="{active: activeTab==='export'}" @click="activeTab='export'">6. 模型合并与量化</button>
+        <button class="nav-btn" :class="{active: activeTab==='data'}" @click="activeTab='data'">7. 数据管理</button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="top-title">{{ pageTitle }}</div>
+        <div class="auth-actions">
+          <template v-if="token">
+            <span class="pill">已登录：{{ auth.username || '已登录用户' }}</span>
+            <button class="btn ghost" @click="logout">登出</button>
+          </template>
+          <template v-else>
+            <button class="btn" @click="openAuth('login')">登录</button>
+            <button class="btn primary" @click="openAuth('register')">注册</button>
+          </template>
+        </div>
+        <div v-if="showAuth" class="auth-pop">
+          <div class="card-title">{{ authMode==='login' ? '登录' : '注册' }}</div>
+          <div class="field">
+            <label class="label">用户名</label>
+            <input class="input" v-model="auth.username" />
+          </div>
+          <div class="field">
+            <label class="label">密码</label>
+            <input class="input" type="password" v-model="auth.password" />
+          </div>
+          <div v-if="authMode==='register'" class="field">
+            <label class="label">确认密码</label>
+            <input class="input" type="password" v-model="auth.confirm" />
+          </div>
+          <div v-if="authMode==='register'" class="field">
+            <label class="label">邀请码</label>
+            <input class="input" type="password" v-model="auth.invite" autocomplete="off" placeholder="请输入邀请码" />
+          </div>
+          <div class="actions">
+            <button class="btn primary" @click="doAuth" :disabled="loading">{{ authMode==='login' ? '登录' : '注册并登录' }}</button>
+            <button class="btn ghost" @click="toggleAuthMode" :disabled="loading">切换到 {{ authMode==='login' ? '注册' : '登录' }}</button>
+            <button class="btn ghost" @click="showAuth=false">关闭</button>
+          </div>
+          <div v-if="message" class="alert" :class="messageColor === '#94f7c5' ? 'success' : 'error'">{{ message }}</div>
+        </div>
+      </header>
+
+      <main class="content">
+        <!-- 资源总览 -->
+        <section v-if="activeTab==='resources'" class="card">
+          <div class="actions" style="justify-content: space-between; align-items: center; margin-bottom:6px;">
+            <div>
+              <h2 class="section-title" style="margin:0;">当前平台在线资源</h2>
+              <p class="section-desc" style="margin:4px 0 0;">查看 Worker 在线状态、GPU/CPU 资源占用与最新心跳时间。</p>
+            </div>
+            <button class="btn" @click="fetchWorkers">刷新</button>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Worker</th>
+                  <th>状态</th>
+                  <th>GPU</th>
+                  <th>CPU / 内存</th>
+                  <th>心跳</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(w, idx) in workers" :key="w.id">
+                  <td>Worker #{{ idx + 1 }}</td>
+                  <td><span class="tag" :class="{idle: w.status==='idle', busy: w.status==='busy', offline: w.status==='offline'}">{{ w.status }}</span></td>
+                  <td>{{ w.gpu_memory_used }} / {{ w.gpu_memory_total }} MB · {{ w.gpu_utilization }}% · {{ w.gpu_temperature }}℃</td>
+                  <td>{{ (w.cpu_percent||0).toFixed(1) }}% / {{ (w.mem_percent||0).toFixed(1) }}%</td>
+                  <td>{{ formatTime(w.last_heartbeat) }}</td>
+                </tr>
+                <tr v-if="!workers.length">
+                  <td colspan="5" class="section-desc">暂无在线 Worker</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 模型训练 -->
+        <section v-if="activeTab==='train'" class="card">
+          <h2 class="section-title">模型训练</h2>
+          <p class="section-desc">填写训练参数并提交任务，支持深度合并 YAML 配置与模板选择。</p>
+          <div class="grid">
+            <div class="card" style="border-color: var(--border);">
+              <h3 class="card-title">提交训练</h3>
+              <div class="field">
+                <label class="label">基座模型</label>
+                <select class="select" v-model="form.model_name">
+                  <option v-for="m in trainModelOptions" :key="m.value" :value="m.value">{{ m.label }}</option>
+                </select>
+                <p class="section-desc" v-if="!trainModelOptions.length">暂无可用模型（需有预置模型或已导出产物）</p>
+              </div>
+              <div class="field">
+                <label class="label">数据集</label>
+                <select class="input" v-model="form.dataset">
+                  <option v-if="form.dataset && !datasets.some(d => d.name === form.dataset)" :value="form.dataset">当前：{{ form.dataset }}</option>
+                  <option v-if="!datasets.length" value="identity">identity（加载中或未拉取到数据集）</option>
+                  <option v-for="d in datasets" :key="`train-ds-${d.id}`" :value="d.name">{{ d.name }}（{{ d.visibility === 'public' ? '公共' : '私有' }}）</option>
+                </select>
+              </div>
+              <div class="grid" style="grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+                <div class="field"><label class="label">训练方式</label>
+                  <select class="select" v-model="form.stage" @change="onStageChange">
+                    <option value="pt">预训练 (pt)</option>
+                    <option value="sft">监督微调 (sft)</option>
+                    <option value="rm">奖励建模 (rm)</option>
+                    <option value="ppo">PPO</option>
+                    <option value="dpo">DPO</option>
+                    <option value="kto">KTO</option>
+                  </select>
+                </div>
+                <div class="field"><label class="label">微调类型</label>
+                  <select class="select" v-model="form.finetuning_type">
+                    <option value="lora" v-if="form.stage!=='pt'">LoRA</option>
+                    <option value="full">全参微调</option>
+                  </select>
+                </div>
+                <div class="field"><label class="label">Epochs</label><input class="input" type="number" step="0.1" v-model.number="form.epochs" /></div>
+                <div class="field"><label class="label">Batch Size</label><input class="input" type="number" v-model.number="form.batch_size" /></div>
+                <div class="field"><label class="label">学习率</label><input class="input" type="number" step="0.00001" v-model.number="form.learning_rate" /></div>
+                <div class="field"><label class="label">Eval Steps</label><input class="input" type="number" v-model.number="form.eval_steps" placeholder="如 50（需配 evaluation_strategy=steps）" /></div>
+                <div class="field"><label class="label">模板</label><input class="input" v-model="form.template" /></div>
+                <div class="field"><label class="label">Warmup Ratio</label><input class="input" type="number" step="0.01" v-model.number="form.warmup_ratio" /></div>
+                <div class="field"><label class="label">Max Length</label><input class="input" type="number" v-model.number="form.cutoff_len" placeholder="序列长度（如 2048）" /></div>
+                <div class="field"><label class="label">验证集比例</label><input class="input" type="number" step="0.01" v-model.number="form.val_size" placeholder="如 0.1" /></div>
+              </div>
+              <div v-if="form.stage==='pt'" class="grid" style="grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap:10px;">
+                <div class="field" style="display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--border); border-radius:10px;">
+                  <label class="label" style="margin:0;">train_from_scratch</label>
+                  <input type="checkbox" v-model="form.train_from_scratch" />
+                </div>
+              </div>
+              <div v-if="form.finetuning_type==='lora'" class="grid" style="grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap:10px;">
+                <div class="field"><label class="label">LoRA Alpha</label><input class="input" type="number" v-model.number="form.lora_alpha" placeholder="默认 16/32" /></div>
+                <div class="field"><label class="label">LoRA Dropout</label><input class="input" type="number" step="0.01" v-model.number="form.lora_dropout" placeholder="默认 0" /></div>
+                <div class="field"><label class="label">LoRA Rank</label><input class="input" type="number" v-model.number="form.lora_rank" placeholder="默认 8" /></div>
+                <div class="field"><label class="label">QLoRA 量化 bit</label><input class="input" type="number" v-model.number="form.quantization_bit" placeholder="设置为 4 开启 QLoRA" /></div>
+                <div class="field"><label class="label">量化算法</label><select class="select" v-model="form.quantization_method"><option value="bitsandbytes">bitsandbytes</option></select></div>
+                <div class="field"><label class="label">量化类型</label><input class="input" v-model="form.quantization_type" placeholder="如 nf4" /></div>
+                <div class="field" style="display:flex; align-items:center; gap:8px;">
+                  <label class="label" style="margin:0;">双重量化</label>
+                  <input type="checkbox" v-model="form.double_quantization" />
+                </div>
+              </div>
+              <div v-if="form.stage==='dpo'" class="grid" style="grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap:10px;">
+                <div class="field"><label class="label">偏好损失</label><input class="input" v-model="form.pref_loss" placeholder="sigmoid/hinge/ipo/kto_pair/orpo/simpo" /></div>
+                <div class="field"><label class="label">pref_beta</label><input class="input" type="number" step="0.01" v-model.number="form.pref_beta" placeholder="默认 0.1" /></div>
+                <div class="field"><label class="label">pref_ftx</label><input class="input" type="number" step="0.01" v-model.number="form.pref_ftx" placeholder="SFT loss 系数" /></div>
+                <div class="field"><label class="label">标签平滑</label><input class="input" type="number" step="0.01" v-model.number="form.dpo_label_smoothing" placeholder="0~0.5" /></div>
+              </div>
+              <div v-if="form.stage==='ppo'" class="grid" style="grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap:10px;">
+                <div class="field"><label class="label">ppo_target (KL)</label><input class="input" type="number" step="0.1" v-model.number="form.ppo_target" placeholder="默认 6" /></div>
+                <div class="field"><label class="label">ppo_epochs</label><input class="input" type="number" v-model.number="form.ppo_epochs" placeholder="默认 4" /></div>
+                <div class="field"><label class="label">ppo_buffer_size</label><input class="input" type="number" v-model.number="form.ppo_buffer_size" placeholder="mini-batch" /></div>
+              </div>
+              <div v-if="form.stage==='kto'" class="grid" style="grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap:10px;">
+                <div class="field"><label class="label">kto_chosen_weight</label><input class="input" type="number" step="0.1" v-model.number="form.kto_chosen_weight" /></div>
+                <div class="field"><label class="label">kto_rejected_weight</label><input class="input" type="number" step="0.1" v-model.number="form.kto_rejected_weight" /></div>
+              </div>
+              <div class="field">
+                <label class="label">额外参数 (JSON 对象)</label>
+                <textarea class="input" rows="3" v-model="form.extra_params" placeholder='如 {"evaluation_strategy": "steps", "lr_scheduler_type": "cosine", "weight_decay": 0.01}'></textarea>
+              </div>
+              <p class="section-desc">提示：更多可选参数参考 parameters.md，未展示项可通过“额外参数”填入；Eval Steps 需配合 evaluation_strategy=steps；预训练可配置 train_from_scratch，LoRA 可开启 QLoRA 量化。</p>
+              <div class="actions">
+                <button class="btn primary" @click="submitTask" :disabled="loading">提交</button>
+                <button class="btn" @click="fetchTasks">刷新任务</button>
+              </div>
+              <div v-if="message" class="alert" :class="messageColor === '#94f7c5' ? 'success' : 'error'">{{ message }}</div>
+            </div>
+            <div class="card" style="border-color: var(--border);">
+              <h3 class="card-title">任务列表</h3>
+              <div class="actions" style="margin-bottom:10px;">
+                <select class="select" v-model="filterStatus" style="width:160px;">
+                  <option value="all">全部</option>
+                  <option value="pending">pending</option>
+                  <option value="running">running</option>
+                  <option value="success">success</option>
+                  <option value="failed">failed</option>
+                </select>
+                <button class="btn" @click="fetchTasks">刷新</button>
+              </div>
+              <div class="table-wrap" style="max-height:320px; overflow:auto;">
+                <table class="table">
+                  <thead><tr><th>ID</th><th>状态</th><th>Worker</th><th>创建时间</th><th>操作</th></tr></thead>
+                  <tbody>
+                    <tr v-for="t in filteredTasks" :key="t.id">
+                      <td>{{ t.id }}</td>
+                      <td><span class="tag" :class="t.status">{{ t.status }}</span></td>
+                      <td>{{ t.worker_id || '-' }}</td>
+                      <td>{{ formatTime(t.created_at) }}</td>
+                      <td class="actions">
+                        <button class="btn" style="padding:6px 10px;" @click="openLog(t)">日志</button>
+                        <button class="btn" style="padding:6px 10px;" @click="openDetail(t)">详情</button>
+                        <button class="btn" style="padding:6px 10px;" :disabled="t.status !== 'success'" @click="download(t)">下载</button>
+                      </td>
+                    </tr>
+                    <tr v-if="!filteredTasks.length"><td colspan="5" class="section-desc">暂无任务</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div v-if="currentTask" class="card" style="margin-top:12px;">
+            <div class="actions" style="justify-content: space-between;">
+              <div class="card-title">日志：{{ currentTask.id }}</div>
+              <button class="btn ghost" @click="closeLog">关闭</button>
+            </div>
+            <pre style="background:#0b1220; color:#e2e8f0; border-radius:12px; padding:12px; max-height:260px; overflow:auto;">{{ logs.join('\n') }}</pre>
+          </div>
+          <div v-if="detailTask" class="card" style="margin-top:12px;">
+            <div class="actions" style="justify-content: space-between;">
+              <div class="card-title">配置详情</div>
+              <button class="btn ghost" @click="closeDetail">关闭</button>
+            </div>
+            <pre style="background:#f8fafc; border:1px solid var(--border); border-radius:12px; padding:12px; max-height:320px; overflow:auto;">{{ prettyConfig(detailTask.config_json) }}</pre>
+          </div>
+        </section>
+
+        <!-- 我的模型 -->
+        <section v-if="activeTab==='mymodels'" class="card">
+          <h2 class="section-title">我的模型</h2>
+          <p class="section-desc">查看已完成的训练产物或已导出的模型，支持下载与后续评测/部署。</p>
+          <div class="grid">
+            <div class="card">
+              <h3 class="card-title">训练成功的模型</h3>
+              <div class="table-wrap" style="max-height:260px; overflow:auto;">
+                <table class="table">
+                  <thead><tr><th>ID</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+                  <tbody>
+                    <tr v-for="t in tasks.filter(x=>x.status==='success')" :key="t.id">
+                      <td>{{ t.id }}</td>
+                      <td><span class="tag success">success</span></td>
+                      <td>{{ formatTime(t.created_at) }}</td>
+                      <td class="actions">
+                        <button class="btn" style="padding:6px 10px;" @click="download(t)">下载</button>
+                      </td>
+                    </tr>
+                    <tr v-if="!tasks.filter(x=>x.status==='success').length"><td colspan="4" class="section-desc">暂无成功任务</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card">
+              <h3 class="card-title">已导出/量化的模型</h3>
+              <div class="table-wrap" style="max-height:260px; overflow:auto;">
+                <table class="table">
+                  <thead><tr><th>ID</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+                  <tbody>
+                    <tr v-for="e in exports.filter(x=>x.status==='success')" :key="e.id">
+                      <td>{{ e.id }}</td>
+                      <td><span class="tag success">success</span></td>
+                      <td>{{ formatTime(e.created_at) }}</td>
+                      <td class="actions"><button class="btn" style="padding:6px 10px;" @click="downloadExport(e)">下载</button></td>
+                    </tr>
+                    <tr v-if="!exports.filter(x=>x.status==='success').length"><td colspan="4" class="section-desc">暂无导出模型</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 模型评测 -->
+        <section v-if="activeTab==='eval'" class="card">
+          <h2 class="section-title">模型评测</h2>
+          <p class="section-desc">选择预置模型或我的训练产物，提交评测任务并下载结果。</p>
+          <div class="grid">
+            <div class="card">
+              <h3 class="card-title">创建评测</h3>
+              <div class="field">
+                <label class="label">模型来源</label>
+                <select class="select" v-model="evalSource" @change="applyModelSelection">
+                  <option value="builtin">预置模型</option>
+                  <option value="mytask">我的训练产物</option>
+                  <option value="myexport">我的合并/量化产物</option>
+                </select>
+              </div>
+              <div class="field" v-if="evalSource==='builtin'">
+                <label class="label">预置模型</label>
+                <select class="select" v-model="selectedModelKey" @change="applyModelSelection">
+                  <option v-for="m in models" :key="m.name" :value="m.name">{{ m.name }}</option>
+                </select>
+                <p class="section-desc" v-if="!models.length">暂无可用预置模型</p>
+              </div>
+              <div class="field" v-else-if="evalSource==='mytask'">
+                <label class="label">我的成功任务</label>
+                <select class="select" v-model="selectedTaskId" @change="applyModelSelection">
+                  <option v-for="t in tasks.filter(x=>x.status==='success')" :key="t.id" :value="t.id">{{ t.id }}</option>
+                </select>
+                <p class="section-desc" v-if="!tasks.filter(x=>x.status==='success').length">暂无成功任务</p>
+              </div>
+              <div class="field" v-else>
+                <label class="label">我的导出产物</label>
+                <select class="select" v-model="selectedExportTaskId" @change="applyModelSelection">
+                  <option v-for="e in exports.filter(x=>x.status==='success')" :key="e.id" :value="e.id">{{ e.id }}</option>
+                </select>
+                <p class="section-desc" v-if="!exports.filter(x=>x.status==='success').length">暂无导出产物</p>
+              </div>
+              <div class="field"><label class="label">基座模型</label><input class="input" v-model="evalForm.model_name" readonly /></div>
+              <div class="field"><label class="label">模板</label><input class="input" v-model="evalForm.template" readonly /></div>
+              <div class="field">
+                <label class="label">评测数据集</label>
+                <select class="input" v-model="evalForm.dataset">
+                  <option v-if="evalForm.dataset && !datasets.some(d => d.name === evalForm.dataset)" :value="evalForm.dataset">当前：{{ evalForm.dataset }}</option>
+                  <option v-if="!datasets.length" value="identity">identity（加载中或未拉取到数据集）</option>
+                  <option v-for="d in datasets" :key="`eval-ds-${d.id}`" :value="d.name">{{ d.name }}（{{ d.visibility === 'public' ? '公共' : '私有' }}）</option>
+                </select>
+              </div>
+              <div class="field"><label class="label">Seed</label><input class="input" type="number" v-model.number="evalForm.seed" /></div>
+              <div class="field"><label class="label">Batch Size</label><input class="input" type="number" v-model.number="evalForm.batch_size" /></div>
+              <div class="field"><label class="label">Max Samples</label><input class="input" type="number" v-model.number="evalForm.max_samples" /></div>
+              <div class="actions">
+                <button class="btn primary" @click="submitEval" :disabled="evalLoading">提交评测</button>
+                <button class="btn" @click="fetchEvals">刷新</button>
+              </div>
+              <div v-if="evalMessage" class="alert" :class="evalMessageColor === '#94f7c5' ? 'success' : 'error'">{{ evalMessage }}</div>
+            </div>
+            <div class="card">
+              <h3 class="card-title">评测任务</h3>
+              <div class="table-wrap" style="max-height:320px; overflow:auto;">
+                <table class="table">
+                  <thead><tr><th>ID</th><th>状态</th><th>Worker</th><th>创建</th><th>操作</th></tr></thead>
+                  <tbody>
+                    <tr v-for="e in evals" :key="e.id">
+                      <td>{{ e.id }}</td>
+                      <td><span class="tag" :class="e.status">{{ e.status }}</span></td>
+                      <td>{{ e.worker_id || '-' }}</td>
+                      <td>{{ formatTime(e.created_at) }}</td>
+                      <td class="actions">
+                        <button class="btn" style="padding:6px 10px;" :disabled="e.status !== 'success'" @click="downloadEval(e)">下载</button>
+                      </td>
+                    </tr>
+                    <tr v-if="!evals.length"><td colspan="5" class="section-desc">暂无评测任务</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 在线部署与推理 -->
+        <section v-if="activeTab==='deploy'" class="card">
+          <h2 class="section-title">在线部署与推理</h2>
+          <p class="section-desc">一键部署推理容器，实时对话测试并查看日志。</p>
+          <div class="grid">
+            <div class="card">
+              <h3 class="card-title">部署</h3>
+              <div class="field">
+                <label class="label">模型来源</label>
+                <select class="select" v-model="deploySource" @change="applyDeploySelection">
+                  <option value="builtin">预置模型</option>
+                  <option value="mytask">我的训练产物</option>
+                  <option value="myexport">我的合并/量化产物</option>
+                </select>
+              </div>
+              <div class="field" v-if="deploySource==='builtin'">
+                <label class="label">预置模型</label>
+                <select class="select" v-model="selectedDeployModelKey" @change="applyDeploySelection">
+                  <option v-for="m in models" :key="m.name" :value="m.name">{{ m.name }}</option>
+                </select>
+                <p class="section-desc" v-if="!models.length">暂无可用预置模型</p>
+              </div>
+              <div class="field" v-else-if="deploySource==='mytask'">
+                <label class="label">我的成功任务</label>
+                <select class="select" v-model="selectedDeployTaskId" @change="applyDeploySelection">
+                  <option v-for="t in tasks.filter(x=>x.status==='success')" :key="t.id" :value="t.id">{{ t.id }}</option>
+                </select>
+                <p class="section-desc" v-if="!tasks.filter(x=>x.status==='success').length">暂无成功任务</p>
+              </div>
+              <div class="field" v-else>
+                <label class="label">我的导出产物</label>
+                <select class="select" v-model="selectedDeployExportId" @change="applyDeploySelection">
+                  <option v-for="e in exports.filter(x=>x.status==='success')" :key="e.id" :value="e.id">{{ e.id }}</option>
+                </select>
+                <p class="section-desc" v-if="!exports.filter(x=>x.status==='success').length">暂无导出产物</p>
+              </div>
+              <div class="field"><label class="label">任务标识</label><input class="input" v-model="inferenceForm.task_id" readonly /></div>
+              <div class="actions">
+                <button class="btn primary" @click="deployInference" :disabled="inferenceLoading">部署</button>
+                <button class="btn" @click="stopInference" :disabled="inferenceLoading">卸载</button>
+                <button class="btn ghost" @click="loadInferenceState">恢复本地状态</button>
+              </div>
+              <div class="panel">
+                <div class="metric"><div class="label">状态</div><div class="val">{{ inferenceState.status }}</div></div>
+                <div class="metric"><div class="label">说明</div><div class="val">{{ inferenceState.status==='running' ? '已部署（内部访问）' : '未部署' }}</div></div>
+              </div>
+              <p class="section-desc">“恢复本地状态”会从浏览器本地存储读取上次部署的会话状态，用于页面刷新后继续对话。</p>
+              <div v-if="inferenceMessage" class="alert" :class="inferenceMessageColor === '#94f7c5' ? 'success' : 'error'">{{ inferenceMessage }}</div>
+            </div>
+            <div class="card">
+              <h3 class="card-title">对话测试</h3>
+              <div class="field"><label class="label">Prompt</label><textarea v-model="chatInput" placeholder="输入推理问题，先部署后对话"></textarea></div>
+              <div class="actions" style="justify-content: flex-end;">
+                <button class="btn primary" @click="sendChat" :disabled="chatLoading || !chatInput.trim()">发送</button>
+                <button class="btn" @click="clearChat" :disabled="chatLoading">清空</button>
+              </div>
+              <div class="card" style="background:#f8fafc; border-color: var(--border); max-height:260px; overflow:auto;">
+                <div v-if="!chatHistory.length" class="section-desc">部署后可在此对话，最多保留最近 30 条。</div>
+                <div v-for="(msg, idx) in chatHistory" :key="idx" style="margin-bottom:10px;">
+                  <div class="label" style="color: var(--text); font-weight:700;">{{ msg.role === 'user' ? '我' : '模型' }}</div>
+                  <div>{{ msg.content }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 模型合并与量化 -->
+        <section v-if="activeTab==='export'" class="card">
+          <h2 class="section-title">模型合并与量化</h2>
+          <p class="section-desc">选择模型并提交导出/量化任务，默认使用 bitsandbytes；GPTQ 需显式选择并具备依赖。</p>
+          <div class="grid">
+            <div class="card">
+              <h3 class="card-title">提交导出</h3>
+              <div class="field">
+                <label class="label">模型来源</label>
+                <select class="select" v-model="exportSource" @change="applyExportModelSelection">
+                  <option value="builtin">预置模型</option>
+                  <option value="mytask">我的训练产物 (LoRA)</option>
+                  <option value="myexport">我的合并/量化产物</option>
+                </select>
+              </div>
+              <div class="field" v-if="exportSource==='builtin'">
+                <label class="label">预置模型</label>
+                <select class="select" v-model="selectedExportModelKey" @change="applyExportModelSelection">
+                  <option v-for="m in models" :key="m.name" :value="m.name">{{ m.name }}</option>
+                </select>
+                <p class="section-desc" v-if="!models.length">暂无可用预置模型</p>
+              </div>
+              <div class="field" v-else-if="exportSource==='mytask'">
+                <label class="label">我的成功任务 (LoRA)</label>
+                <select class="select" v-model="selectedExportTaskId" @change="applyExportModelSelection">
+                  <option v-for="t in tasks.filter(x=>x.status==='success')" :key="t.id" :value="t.id">{{ t.id }}</option>
+                </select>
+                <p class="section-desc" v-if="!tasks.filter(x=>x.status==='success').length">暂无成功任务</p>
+              </div>
+              <div class="field" v-else>
+                <label class="label">我的导出产物</label>
+                <select class="select" v-model="selectedExportTaskId" @change="applyExportModelSelection">
+                  <option v-for="e in exports.filter(x=>x.status==='success')" :key="e.id" :value="e.id">{{ e.id }}</option>
+                </select>
+                <p class="section-desc" v-if="!exports.filter(x=>x.status==='success').length">暂无导出产物</p>
+              </div>
+              <div class="field"><label class="label">基座模型</label><input class="input" v-model="exportForm.model_name" readonly /></div>
+              <div class="field"><label class="label">模板</label><input class="input" v-model="exportForm.template" readonly /></div>
+              <div class="field"><label class="label">量化 bit (可选)</label><input class="input" type="number" v-model.number="exportForm.quantization_bit" placeholder="如 4 或 8" /></div>
+              <div class="field"><label class="label">量化数据集 (可选)</label><input class="input" v-model="exportForm.quantization_dataset" placeholder="如 c4_demo.jsonl" list="datasetOptions" /></div>
+              <div class="actions">
+                <button class="btn primary" @click="submitExport" :disabled="exportLoading">提交导出</button>
+                <button class="btn" @click="fetchExports">刷新</button>
+              </div>
+              <div v-if="exportMessage" class="alert" :class="exportMessageColor === '#94f7c5' ? 'success' : 'error'">{{ exportMessage }}</div>
+            </div>
+            <div class="card">
+              <h3 class="card-title">导出任务</h3>
+              <div class="table-wrap" style="max-height:320px; overflow:auto;">
+                <table class="table">
+                  <thead><tr><th>ID</th><th>状态</th><th>Worker</th><th>创建</th><th>操作</th></tr></thead>
+                  <tbody>
+                    <tr v-for="e in exports" :key="e.id">
+                      <td>{{ e.id }}</td>
+                      <td><span class="tag" :class="e.status">{{ e.status }}</span></td>
+                      <td>{{ e.worker_id || '-' }}</td>
+                      <td>{{ formatTime(e.created_at) }}</td>
+                      <td class="actions"><button class="btn" style="padding:6px 10px;" :disabled="e.status !== 'success'" @click="downloadExport(e)">下载</button></td>
+                    </tr>
+                    <tr v-if="!exports.length"><td colspan="5" class="section-desc">暂无导出任务</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 数据管理 -->
+        <section v-if="activeTab==='data'" class="card">
+          <h2 class="section-title">数据管理</h2>
+          <div class="card" style="border-color: var(--border); margin-bottom:12px;">
+            <h3 class="card-title">上传 / 注册</h3>
+            <p class="section-desc">支持上传私有数据集，自动写入 dataset_info.json 并完成访问控制。</p>
+            <div class="field"><label class="label">数据集名称</label><input class="input" v-model="datasetUpload.name" placeholder="如 my_dataset" /></div>
+            <div class="field"><label class="label">备注</label><input class="input" v-model="datasetUpload.remark" placeholder="选填" /></div>
+            <div class="field"><label class="label">上传文件</label><input class="input" type="file" @change="handleDatasetFile" /></div>
+            <div class="actions">
+              <button class="btn primary" @click="uploadDataset">上传并注册</button>
+              <button class="btn" @click="fetchDatasets">刷新列表</button>
+            </div>
+            <div v-if="datasetMessage" class="alert" :class="datasetMessageColor === '#94f7c5' ? 'success' : 'error'">{{ datasetMessage }}</div>
+          </div>
+
+          <div class="card" style="border-color: var(--border); margin-bottom:12px;">
+            <h3 class="card-title">清洗 / 生成 / 增强（派生新数据集）</h3>
+            <p class="section-desc">对已上传的私有数据集执行清洗/生成/增强，产物会自动落盘并注册到数据库与 dataset_info.json。</p>
+            <div class="actions" style="justify-content: space-between; margin-bottom:10px;">
+              <div class="pill-bar">
+                <span class="pill" v-if="datasetOps.loading">进行中：{{ datasetOps.currentAction || '处理中' }}</span>
+                <span class="section-desc" v-else>提示：生成/增强可能耗时较长，请耐心等待</span>
+              </div>
+              <button class="btn" @click="fetchDatasets" :disabled="datasetOps.loading">刷新列表</button>
+            </div>
+            <!-- 源数据集选择与预览：单独一行，方便展开预览窗口 -->
+            <div class="card" style="border-color: var(--border); margin-bottom:12px;">
+              <div class="actions" style="justify-content: space-between; align-items:flex-start;">
+                <div style="flex:1; min-width:320px;">
+                  <div class="field" style="margin-bottom:0;">
+                    <label class="label">选择源数据集（仅本人私有可派生）</label>
+                    <select class="select" v-model="datasetOps.sourceId">
+                      <option value="">请选择</option>
+                      <option v-for="d in datasets" :key="'op-'+d.id" :value="String(d.id)">
+                        {{ d.visibility==='private' ? '私有' : '公共' }} | {{ d.name }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+                <div class="actions" style="justify-content:flex-end; align-items:flex-end;">
+                  <button class="btn" @click="previewSelectedDataset" :disabled="!datasetOps.sourceId || datasetOps.loading">{{ datasetOps.loading && datasetOps.currentAction==='预览' ? '预览中…' : '预览' }}</button>
+                  <button class="btn" @click="downloadSelectedDataset" :disabled="!datasetOps.sourceId || datasetOps.loading">下载</button>
+                </div>
+              </div>
+              <div class="divider"></div>
+              <div class="field" style="margin-bottom:0;"><label class="label">预览内容（建议先预览确认格式）</label>
+                <pre style="background:#0b1220; color:#e2e8f0; border-radius:12px; padding:14px; max-height:420px; overflow:auto; font-size:12px; line-height:1.5;">{{ datasetOps.previewText || '（点击预览）' }}</pre>
+              </div>
+            </div>
+
+            <div class="grid">
+              <div class="card" style="border-color: var(--border);">
+                <div class="card-title">模型接口配置（OpenAI 兼容）</div>
+                <p class="section-desc">生成/增强会调用该接口。base_url 通常形如 https://xxx/v1（不要填 /chat/completions）。</p>
+                <div class="field"><label class="label">API Key</label><input class="input" type="password" v-model="datasetOps.llm.api_key" @change="saveDatasetLlmConfig" placeholder="不会保存到服务器，仅保存在浏览器" /></div>
+                <div class="field"><label class="label">Base URL</label><input class="input" v-model="datasetOps.llm.base_url" @change="saveDatasetLlmConfig" placeholder="https://api.deepseek.com/v1" /></div>
+                <div class="field"><label class="label">Model</label><input class="input" v-model="datasetOps.llm.model" @change="saveDatasetLlmConfig" placeholder="deepseek-chat / gpt-4o-mini ..." /></div>
+                <div class="actions">
+                  <button class="btn" @click="clearDatasetLlmConfig" :disabled="datasetOps.loading">清空</button>
+                  <span class="section-desc">仅用于当前浏览器本地调用</span>
+                </div>
+              </div>
+
+              <div class="card" style="border-color: var(--border);">
+                <div class="card-title">清洗（txt/pdf → cleaned_*.txt）</div>
+                <div class="field"><label class="label">新数据集名称</label><input class="input" v-model="datasetOps.clean.new_name" placeholder="如 cleaned_mydata" /></div>
+                <div class="field"><label class="label">备注</label><input class="input" v-model="datasetOps.clean.remark" placeholder="选填" /></div>
+                <div class="actions">
+                  <button class="btn primary" @click="runDatasetClean" :disabled="!datasetOps.sourceId || !datasetOps.clean.new_name || datasetOps.loading">{{ datasetOps.loading && datasetOps.currentAction==='清洗' ? '清洗中…' : '开始清洗' }}</button>
+                </div>
+              </div>
+
+              <div class="card" style="border-color: var(--border);">
+                <div class="card-title">生成（txt/pdf → Alpaca jsonl）</div>
+                <div class="field"><label class="label">新数据集名称</label><input class="input" v-model="datasetOps.gen.new_name" placeholder="如 gen_alpaca" /></div>
+                <div class="field"><label class="label">接口配置来源</label><input class="input" :value="`base_url=${datasetOps.llm.base_url || '-'} | model=${datasetOps.llm.model || '-'}`" disabled /></div>
+                <div class="field"><label class="label">Profile</label>
+                  <select class="select" v-model="datasetOps.gen.profile">
+                    <option value="mixed">mixed</option>
+                    <option value="concept_qa">concept_qa</option>
+                    <option value="process_qa">process_qa</option>
+                    <option value="pitfall_qa">pitfall_qa</option>
+                    <option value="application_qa">application_qa</option>
+                  </select>
+                </div>
+                <div class="field"><label class="label">风格说明（style，可选）</label><input class="input" v-model="datasetOps.gen.style" placeholder="如：法律问答风格，严谨、引用法条" /></div>
+                <div class="field"><label class="label">最大样本数</label><input class="input" type="number" v-model.number="datasetOps.gen.max_examples" /></div>
+                <div class="field"><label class="label">备注</label><input class="input" v-model="datasetOps.gen.remark" placeholder="选填" /></div>
+                <div class="actions">
+                  <button class="btn primary" @click="runDatasetGenerate" :disabled="!datasetOps.sourceId || !datasetOps.gen.new_name || !datasetOps.llm.api_key || !datasetOps.llm.base_url || !datasetOps.llm.model || datasetOps.loading">{{ datasetOps.loading && datasetOps.currentAction==='生成' ? '生成中…' : '开始生成' }}</button>
+                </div>
+              </div>
+
+              <div class="card" style="border-color: var(--border);">
+                <div class="card-title">增强（Alpaca .json/.jsonl → .jsonl）</div>
+                <p class="section-desc">若源为 jsonl，将自动转为 JSON 数组增强，输出统一导出为 jsonl。</p>
+                <div class="field"><label class="label">新数据集名称</label><input class="input" v-model="datasetOps.aug.new_name" placeholder="如 aug_alpaca" /></div>
+                <div class="field"><label class="label">接口配置来源</label><input class="input" :value="`base_url=${datasetOps.llm.base_url || '-'} | model=${datasetOps.llm.model || '-'}`" disabled /></div>
+                <div class="field"><label class="label">few_shot_num</label><input class="input" type="number" v-model.number="datasetOps.aug.few_shot_num" /></div>
+                <div class="field"><label class="label">similarity_threshold</label><input class="input" type="number" step="0.01" v-model.number="datasetOps.aug.similarity_threshold" /></div>
+                <div class="field"><label class="label">generate_num</label><input class="input" type="number" v-model.number="datasetOps.aug.generate_num" /></div>
+                <div class="field"><label class="label">备注</label><input class="input" v-model="datasetOps.aug.remark" placeholder="选填" /></div>
+                <div class="actions">
+                  <button class="btn primary" @click="runDatasetAugment" :disabled="!datasetOps.sourceId || !datasetOps.aug.new_name || !datasetOps.llm.api_key || !datasetOps.llm.base_url || !datasetOps.llm.model || datasetOps.loading">{{ datasetOps.loading && datasetOps.currentAction==='增强' ? '增强中…' : '开始增强' }}</button>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="datasetOps.message" class="alert" :class="datasetOps.ok ? 'success' : 'error'" style="margin-top:12px;">{{ datasetOps.message }}</div>
+          </div>
+
+          <div class="card" style="border-color: var(--border);">
+            <h3 class="card-title">数据集列表</h3>
+            <div class="table-wrap" style="max-height:420px; overflow:auto;">
+              <table class="table">
+                <thead><tr><th>名称</th><th>可见性</th><th>来源</th><th>路径/文件</th><th>备注</th><th>创建时间</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr v-for="d in datasets" :key="d.id">
+                    <td>{{ d.name }}</td>
+                    <td><span class="tag" :class="d.visibility==='public' ? 'success' : 'info'">{{ d.visibility }}</span></td>
+                    <td>{{ d.source }}</td>
+                    <td>{{ (d.info && d.info.file_name) ? d.info.file_name : (d.path || '-') }}</td>
+                    <td>{{ d.remark || '-' }}</td>
+                    <td>{{ formatTime(d.created_at) }}</td>
+                    <td class="actions">
+                      <button class="btn" style="padding:6px 10px;" @click="previewDataset(d)">预览</button>
+                      <button class="btn" style="padding:6px 10px;" @click="downloadDataset(d)">下载</button>
+                      <template v-if="d.visibility==='private' && canDeleteDataset(d)">
+                        <button class="btn" style="padding:6px 10px;" @click="updateDatasetRemark(d)">备注</button>
+                        <button class="btn" style="padding:6px 10px;" @click="deleteDataset(d)">删除</button>
+                      </template>
+                    </td>
+                  </tr>
+                  <tr v-if="!datasets.length"><td colspan="7" class="section-desc">暂无可见数据集</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card" style="background:#f8fafc; border-color: var(--border); margin-top:12px;">
+            <div class="card-title">使用说明</div>
+            <ul class="section-desc" style="line-height:1.6;">
+              <li>公共数据集由平台预注册，存储在 dataset_info_public.json；系统启动时自动同步到数据库。</li>
+              <li>私有数据集会被写入数据库并同步到 cloud-llm/data/dataset_info.json，训练/评测容器自动挂载 /app/data 使用。</li>
+              <li>上传的数据默认落盘到 cloud-llm/data/user_{userId}/数据集名/，删除操作仅限本人私有数据。</li>
+              <li>如需手工注册网络数据集，可在后端调用 /datasets/register（需登录，admin 可注册公共数据）。</li>
+            </ul>
+          </div>
+        </section>
+        <datalist id="datasetOptions">
+          <option v-for="d in datasets" :key="`ds-${d.id}`" :value="d.name">{{ d.visibility === 'public' ? '公共' : '私有' }}</option>
+        </datalist>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+    createApp({
+      data() {
+        return {
+          sidebarOpen: false,
+          activeTab: 'resources',
+          showAuth: false,
+          authMode: 'login',
+          auth: { username: '', password: '', confirm: '', invite: '' },
+          token: localStorage.getItem('token') || '',
+          message: '',
+          messageColor: '#94f7c5',
+          loading: false,
+          form: { model_name: '', dataset: 'identity', epochs: 3, batch_size: 2, learning_rate: 0.0001, eval_steps: 50, template: 'qwen', stage: 'sft', finetuning_type: 'lora', lora_alpha: 16, lora_dropout: 0, lora_rank: 8, pref_loss: 'sigmoid', pref_beta: 0.1, pref_ftx: 0.0, dpo_label_smoothing: 0.0, ppo_target: 6.0, ppo_epochs: 4, ppo_buffer_size: 1, kto_chosen_weight: 1.0, kto_rejected_weight: 1.0, train_from_scratch: false, quantization_bit: null, quantization_method: 'bitsandbytes', quantization_type: 'nf4', double_quantization: true, warmup_ratio: 0.1, cutoff_len: 2048, val_size: 0.1, extra_params: '' },
+          tasks: [],
+          filterStatus: 'all',
+          workers: [],
+          models: [],
+          refreshTimer: null,
+          currentTask: null,
+          logs: [],
+          ws: null,
+          detailTask: null,
+          evalForm: { model_name: 'Qwen/Qwen2.5-0.5B-Instruct', model_path: '', template: 'qwen', dataset: 'identity', seed: 42, batch_size: 4, max_samples: 200 },
+          evals: [],
+          evalMessage: '',
+          evalMessageColor: '#94f7c5',
+          evalLoading: false,
+          evalSource: 'builtin',
+          selectedModelKey: '',
+          selectedTaskId: '',
+          selectedExportTaskId: '',
+          deploySource: 'builtin',
+          selectedDeployModelKey: '',
+          selectedDeployTaskId: '',
+          selectedDeployExportId: '',
+          inferenceForm: { task_id: '', model_path: '' },
+          inferenceState: { sessionId: null, status: 'idle' },
+          inferenceMessage: '',
+          inferenceMessageColor: '#94f7c5',
+          inferenceLoading: false,
+          exports: [],
+          exportForm: { model_name: 'Qwen/Qwen2.5-0.5B-Instruct', adapter_path: '', template: 'qwen', quantization_bit: null, quantization_dataset: '' },
+          exportMessage: '',
+          exportMessageColor: '#94f7c5',
+          exportLoading: false,
+          exportSource: 'builtin',
+          selectedExportModelKey: '',
+          selectedExportTaskId: '',
+          chatInput: '',
+          chatHistory: [],
+          chatLoading: false,
+          datasets: [],
+          datasetUpload: { name: '', remark: '', file: null },
+          datasetMessage: '',
+          datasetMessageColor: '#94f7c5',
+          datasetOps: {
+            sourceId: '',
+            loading: false,
+            currentAction: '',
+            message: '',
+            ok: true,
+            previewText: '',
+            llm: { api_key: '', base_url: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
+            clean: { new_name: '', remark: '' },
+            gen: { new_name: '', profile: 'mixed', style: '', max_examples: 200, remark: '' },
+            aug: { new_name: '', few_shot_num: 10, similarity_threshold: 0.7, generate_num: 10, remark: '' }
+          },
+          currentUser: { username: '', user_id: null }
+        };
+      },
+      mounted() {
+        this.fetchTasks();
+        this.fetchWorkers();
+        this.refreshTimer = setInterval(() => this.fetchWorkers(), 30000);
+        this.fetchModels();
+        this.fetchEvals();
+        this.fetchExports();
+        // 未登录也允许浏览公共数据集，训练/评测下拉需要依赖这份列表
+        this.fetchDatasets();
+        this.loadDatasetLlmConfig();
+        this.loadInferenceState();
+        this.loadChatHistory();
+        this.fetchProfile();
+      },
+      beforeUnmount() {
+        if (this.refreshTimer) clearInterval(this.refreshTimer);
+      },
+      computed: {
+        trainModelOptions() {
+          const opts = [];
+          this.models.forEach(m => opts.push({ label: `预置 | ${m.name}`, value: m.path || m.name }));
+          this.exports.filter(x=>x.status==='success').forEach(e => opts.push({ label: `我的导出 | ${e.id}`, value: `/app/output/${e.id}/export` }));
+          return opts;
+        },
+        filteredTasks() {
+          if (this.filterStatus === 'all') return this.tasks;
+          return this.tasks.filter(t => t.status === this.filterStatus);
+        },
+        pageTitle() {
+          const map = {
+            resources: '当前平台在线资源',
+            train: '模型训练',
+            mymodels: '我的模型',
+            eval: '模型评测',
+            deploy: '在线部署与推理',
+            export: '模型合并与量化',
+            data: '数据管理'
+          };
+          return map[this.activeTab] || '控制台';
+        }
+      },
+      methods: {
+        loadDatasetLlmConfig() {
+          const raw = localStorage.getItem('datasetLlmConfig');
+          if (!raw) return;
+          try {
+            const cfg = JSON.parse(raw);
+            if (cfg && typeof cfg === 'object') {
+              this.datasetOps.llm.api_key = cfg.api_key || this.datasetOps.llm.api_key;
+              this.datasetOps.llm.base_url = cfg.base_url || this.datasetOps.llm.base_url;
+              this.datasetOps.llm.model = cfg.model || this.datasetOps.llm.model;
+            }
+          } catch (_) {}
+        },
+        saveDatasetLlmConfig() {
+          try {
+            localStorage.setItem('datasetLlmConfig', JSON.stringify({
+              api_key: this.datasetOps.llm.api_key || '',
+              base_url: this.datasetOps.llm.base_url || '',
+              model: this.datasetOps.llm.model || ''
+            }));
+          } catch (_) {}
+        },
+        clearDatasetLlmConfig() {
+          this.datasetOps.llm.api_key = '';
+          this.datasetOps.llm.base_url = '';
+          this.datasetOps.llm.model = '';
+          try { localStorage.removeItem('datasetLlmConfig'); } catch (_) {}
+        },
+        normalizeBaseUrl(u) {
+          const s = (u || '').trim();
+          if (!s) return '';
+          // 常见误填：把 completions endpoint 当成 base_url
+          if (s.endsWith('/chat/completions')) return s.slice(0, -('/chat/completions'.length));
+          return s.replace(/\/+$/, '');
+        },
+        openAuth(mode) {
+          this.authMode = mode;
+          this.showAuth = true;
+          this.message = '';
+        },
+        onStageChange() {
+          if (this.form.stage === 'pt') {
+            this.form.finetuning_type = 'full';
+          }
+        },
+        authHeaders(contentType = 'json') {
+          const headers = {};
+          if (contentType === 'json') headers['Content-Type'] = 'application/json';
+          if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+          return headers;
+        },
+        async doAuth() {
+          this.message = '';
+          const path = this.authMode === 'login' ? '/auth/login' : '/auth/register';
+          const payload = {
+            username: this.auth.username,
+            password: this.auth.password,
+          };
+          if (this.authMode === 'register') {
+            payload.confirm_password = this.auth.confirm;
+            payload.invite_code = this.auth.invite;
+          }
+          try {
+            const resp = await fetch(path, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || '认证失败，请检查账号、密码或邀请码');
+            this.token = data.token;
+            localStorage.setItem('token', this.token);
+            this.currentUser = { username: data.username, user_id: data.user_id };
+            this.message = this.authMode === 'login' ? '登录成功' : '注册成功，已自动登录';
+            this.messageColor = '#94f7c5';
+            this.showAuth = false;
+            this.fetchTasks();
+            this.fetchWorkers();
+            this.fetchModels();
+            this.fetchEvals();
+            this.fetchExports();
+            this.fetchDatasets();
+          } catch (e) {
+            this.message = e.message;
+            this.messageColor = '#fca5a5';
+          }
+        },
+        async fetchProfile() {
+          if (!this.token) return;
+          try {
+            const resp = await fetch('/me', { headers: this.authHeaders() });
+            if (!resp.ok) return;
+            const data = await resp.json();
+            this.currentUser = { username: data.username, user_id: data.user_id };
+            this.fetchDatasets();
+          } catch (e) { console.error(e); }
+        },
+        toggleAuthMode() {
+          this.authMode = this.authMode === 'login' ? 'register' : 'login';
+          this.message = '';
+        },
+        logout() {
+          this.token = '';
+          localStorage.removeItem('token');
+          location.reload();
+        },
+        async submitTask() {
+          if (!this.token) {
+            this.message = '请先登录';
+            this.messageColor = '#fca5a5';
+            return;
+          }
+          this.loading = true;
+          this.message = '';
+          try {
+            const payload = Object.assign({}, this.form, { config_overrides: this.buildTrainOverrides() });
+            const resp = await fetch('/submit', {
+              method: 'POST',
+              headers: this.authHeaders(),
+              body: JSON.stringify(payload)
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || '提交失败');
+            this.message = `提交成功: ${data.id}`;
+            this.messageColor = '#94f7c5';
+            this.fetchTasks();
+          } catch (e) {
+            this.message = e.message;
+            this.messageColor = '#fca5a5';
+          } finally {
+            this.loading = false;
+          }
+        },
+        async fetchTasks() {
+          try {
+            const resp = await fetch('/tasks', { headers: this.authHeaders() });
+            const data = await resp.json();
+            this.tasks = data || [];
+            if (this.evalSource === 'mytask') {
+              const successTasks = this.tasks.filter(x => x.status === 'success');
+              if (successTasks.length && !this.selectedTaskId) {
+                this.selectedTaskId = successTasks[0].id;
+              }
+              this.applyModelSelection();
+            }
+          } catch (e) { console.error(e); }
+        },
+        async fetchWorkers() {
+          try {
+            const resp = await fetch('/workers', { headers: this.authHeaders() });
+            const data = await resp.json();
+            this.workers = data || [];
+          } catch (e) { console.error(e); }
+        },
+        async fetchModels() {
+          try {
+            const resp = await fetch('/models', { headers: this.authHeaders() });
+            const data = await resp.json();
+            this.models = Array.isArray(data) ? data : [];
+            if (!this.selectedModelKey && this.models.length) {
+              this.selectedModelKey = this.models[0].name;
+              this.applyModelSelection();
+            }
+            this.ensureTrainModelDefault();
+            if (this.deploySource === 'builtin' && !this.selectedDeployModelKey && this.models.length) {
+              this.selectedDeployModelKey = this.models[0].name;
+              this.applyDeploySelection();
+            }
+          } catch (e) { console.error(e); }
+        },
+        ensureTrainModelDefault() {
+          if (this.form.model_name) return;
+          const first = this.trainModelOptions[0];
+          if (first) this.form.model_name = first.value;
+        },
+        buildTrainOverrides() {
+          const o = {
+            stage: this.form.stage,
+            finetuning_type: this.form.finetuning_type,
+            num_train_epochs: this.form.epochs,
+            per_device_train_batch_size: this.form.batch_size,
+            learning_rate: this.form.learning_rate,
+            eval_steps: this.form.eval_steps,
+            do_eval: true,
+            warmup_ratio: this.form.warmup_ratio,
+            cutoff_len: this.form.cutoff_len,
+            val_size: this.form.val_size,
+          };
+          if (this.form.stage === 'pt') {
+            o.train_from_scratch = !!this.form.train_from_scratch;
+          }
+          if (this.form.finetuning_type === 'lora') {
+            if (this.form.lora_alpha) o.lora_alpha = this.form.lora_alpha;
+            if (this.form.lora_dropout !== null) o.lora_dropout = this.form.lora_dropout;
+            if (this.form.lora_rank) o.lora_rank = this.form.lora_rank;
+            o.finetuning_type = 'lora';
+            if (this.form.quantization_bit) {
+              o.quantization_bit = this.form.quantization_bit;
+              if (this.form.quantization_method) o.quantization_method = this.form.quantization_method;
+              if (this.form.quantization_type) o.quantization_type = this.form.quantization_type;
+              o.double_quantization = !!this.form.double_quantization;
+            }
+          } else {
+            o.finetuning_type = 'full';
+          }
+          if (this.form.stage === 'dpo') {
+            o.pref_loss = this.form.pref_loss;
+            o.pref_beta = this.form.pref_beta;
+            o.pref_ftx = this.form.pref_ftx;
+            o.dpo_label_smoothing = this.form.dpo_label_smoothing;
+          }
+          if (this.form.stage === 'ppo') {
+            o.ppo_target = this.form.ppo_target;
+            o.ppo_epochs = this.form.ppo_epochs;
+            o.ppo_buffer_size = this.form.ppo_buffer_size;
+          }
+          if (this.form.stage === 'kto') {
+            o.kto_chosen_weight = this.form.kto_chosen_weight;
+            o.kto_rejected_weight = this.form.kto_rejected_weight;
+          }
+          if (this.form.extra_params && this.form.extra_params.trim()) {
+            try {
+              const extras = JSON.parse(this.form.extra_params);
+              if (extras && typeof extras === 'object') {
+                Object.assign(o, extras);
+              }
+            } catch (err) {
+              throw new Error('额外参数需为合法 JSON 对象');
+            }
+          }
+          return o;
+        },
+        async fetchEvals() {
+          try {
+            const resp = await fetch('/evals', { headers: this.authHeaders() });
+            const data = await resp.json();
+            this.evals = Array.isArray(data) ? data : [];
+          } catch (e) { console.error(e); }
+        },
+        async fetchExports() {
+          try {
+            const resp = await fetch('/exports', { headers: this.authHeaders() });
+            const data = await resp.json();
+            this.exports = Array.isArray(data) ? data : [];
+            this.ensureTrainModelDefault();
+          } catch (e) { console.error(e); }
+        },
+        async fetchDatasets() {
+          try {
+            const resp = await fetch('/datasets', { headers: this.token ? this.authHeaders() : {} });
+            if (!resp.ok) { this.datasets = []; return; }
+            const data = await resp.json();
+            this.datasets = Array.isArray(data) ? data : [];
+          } catch (e) { console.error(e); this.datasets = []; }
+        },
+        async submitExport() {
+          if (!this.token) {
+            this.exportMessage = '请先登录';
+            this.exportMessageColor = '#fca5a5';
+            return;
+          }
+          if (this.exportForm.quantization_bit && this.exportSource === 'mytask') {
+            this.exportMessage = '先合并导出再量化：请先不选量化，完成导出后再对产物进行量化。';
+            this.exportMessageColor = '#fca5a5';
+            return;
+          }
+          this.exportLoading = true;
+          this.exportMessage = '';
+          try {
+            const payload = {
+              model_name: this.exportForm.model_name,
+              adapter_path: this.exportForm.adapter_path || null,
+              template: this.exportForm.template,
+              quantization_bit: this.exportForm.quantization_bit || null,
+              quantization_dataset: this.exportForm.quantization_dataset || null,
+              config_overrides: {}
+            };
+            const resp = await fetch('/export/submit', {
+              method: 'POST',
+              headers: this.authHeaders(),
+              body: JSON.stringify(payload)
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || '创建导出任务失败');
+            this.exportMessage = `导出任务提交成功: ${data.id}`;
+            this.exportMessageColor = '#94f7c5';
+            await this.fetchExports();
+          } catch (e) {
+            this.exportMessage = e.message;
+            this.exportMessageColor = '#fca5a5';
+          } finally {
+            this.exportLoading = false;
+          }
+        },
+        applyExportModelSelection() {
+          if (this.exportSource === 'builtin') {
+            if (!this.selectedExportModelKey && this.models.length) {
+              this.selectedExportModelKey = this.models[0].name;
+            }
+            const m = this.models.find(x => x.name === this.selectedExportModelKey);
+            if (m) {
+              this.exportForm.model_name = m.name;
+              this.exportForm.adapter_path = '';
+              this.exportForm.template = 'qwen';
+            }
+          } else if (this.exportSource === 'mytask') {
+            const successTasks = this.tasks.filter(x => x.status === 'success');
+            if (!this.selectedExportTaskId && successTasks.length) {
+              this.selectedExportTaskId = successTasks[0].id;
+            }
+            const t = this.tasks.find(x => x.id === this.selectedExportTaskId && x.status === 'success');
+            if (t) {
+              let cfg = {};
+              try { cfg = JSON.parse(t.config_json); } catch (_) { cfg = {}; }
+              this.exportForm.model_name = cfg.model_name || 'Qwen/Qwen2.5-0.5B-Instruct';
+              this.exportForm.adapter_path = `/app/output/${t.id}`;
+              this.exportForm.template = cfg.template || 'qwen';
+            }
+          } else {
+            const okExports = this.exports.filter(x => x.status === 'success');
+            if (!this.selectedExportTaskId && okExports.length) this.selectedExportTaskId = okExports[0].id;
+            const e = okExports.find(x => x.id === this.selectedExportTaskId);
+            if (e) {
+              this.exportForm.model_name = `/app/output/${e.id}/export`;
+              this.exportForm.adapter_path = '';
+              this.exportForm.template = 'qwen';
+            }
+          }
+        },
+        async submitEval() {
+          if (!this.token) {
+            this.evalMessage = '请先登录';
+            this.evalMessageColor = '#fca5a5';
+            return;
+          }
+          this.evalLoading = true;
+          this.evalMessage = '';
+          try {
+            const payload = {
+              model_name: this.evalForm.model_name,
+              model_path: this.evalForm.model_path || null,
+              template: this.evalForm.template,
+              dataset: this.evalForm.dataset,
+              seed: Number(this.evalForm.seed) || 42,
+              batch_size: Number(this.evalForm.batch_size) || 4,
+              max_samples: Number(this.evalForm.max_samples) || 200,
+              config_overrides: {}
+            };
+            const resp = await fetch('/eval/submit', {
+              method: 'POST',
+              headers: this.authHeaders(),
+              body: JSON.stringify(payload)
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || '创建评估任务失败');
+            this.evalMessage = `评估任务提交成功: ${data.id}`;
+            this.evalMessageColor = '#94f7c5';
+            await this.fetchEvals();
+          } catch (e) {
+            this.evalMessage = e.message;
+            this.evalMessageColor = '#fca5a5';
+          } finally {
+            this.evalLoading = false;
+          }
+        },
+        downloadEval(job) {
+          const url = this.token ? `/eval/download/${job.id}?token=${this.token}` : `/eval/download/${job.id}`;
+          window.open(url, '_blank');
+        },
+        applyModelSelection() {
+          if (this.evalSource === 'builtin') {
+            if (!this.selectedModelKey && this.models.length) {
+              this.selectedModelKey = this.models[0].name;
+            }
+            const m = this.models.find(x => x.name === this.selectedModelKey);
+            if (m) {
+              this.evalForm.model_name = m.name;
+              this.evalForm.model_path = m.path;
+              this.evalForm.template = 'qwen';
+            }
+          } else if (this.evalSource === 'mytask') {
+            const successTasks = this.tasks.filter(x => x.status === 'success');
+            if (!this.selectedTaskId && successTasks.length) {
+              this.selectedTaskId = successTasks[0].id;
+            }
+            const t = this.tasks.find(x => x.id === this.selectedTaskId && x.status === 'success');
+            if (t) {
+              let cfg = {};
+              try { cfg = JSON.parse(t.config_json); } catch (_) { cfg = {}; }
+              this.evalForm.model_name = cfg.model_name || 'Qwen/Qwen2.5-0.5B-Instruct';
+              this.evalForm.model_path = `/app/output/${t.id}`;
+              this.evalForm.template = cfg.template || 'qwen';
+            }
+          } else {
+            const okExports = this.exports.filter(x => x.status === 'success');
+            if (!this.selectedExportTaskId && okExports.length) this.selectedExportTaskId = okExports[0].id;
+            const e = okExports.find(x => x.id === this.selectedExportTaskId);
+            if (e) {
+              this.evalForm.model_name = `/app/output/${e.id}/export`;
+              this.evalForm.model_path = `/app/output/${e.id}/export`;
+              this.evalForm.template = 'qwen';
+            }
+          }
+          this.applyExportModelSelection();
+        },
+        applyDeploySelection() {
+          if (this.deploySource === 'builtin') {
+            if (!this.selectedDeployModelKey && this.models.length) this.selectedDeployModelKey = this.models[0].name;
+            const m = this.models.find(x => x.name === this.selectedDeployModelKey);
+            if (m) {
+              this.inferenceForm.task_id = `deploy_${m.name}`;
+              this.inferenceForm.model_path = m.path || m.name;
+            }
+          } else if (this.deploySource === 'mytask') {
+            const ok = this.tasks.filter(x => x.status === 'success');
+            if (!this.selectedDeployTaskId && ok.length) this.selectedDeployTaskId = ok[0].id;
+            const t = ok.find(x => x.id === this.selectedDeployTaskId);
+            if (t) {
+              this.inferenceForm.task_id = t.id;
+              this.inferenceForm.model_path = `/app/output/${t.id}`;
+            }
+          } else {
+            const ok = this.exports.filter(x => x.status === 'success');
+            if (!this.selectedDeployExportId && ok.length) this.selectedDeployExportId = ok[0].id;
+            const e = ok.find(x => x.id === this.selectedDeployExportId);
+            if (e) {
+              this.inferenceForm.task_id = e.id;
+              this.inferenceForm.model_path = `/app/output/${e.id}/export`;
+            }
+          }
+        },
+        openDetail(task) { this.detailTask = task; },
+        closeDetail() { this.detailTask = null; },
+        prettyConfig(cfg) {
+          try { return JSON.stringify(JSON.parse(cfg), null, 2); } catch (_) { return cfg || ''; }
+        },
+        formatTime(t) { if (!t) return ''; return new Date(t).toLocaleString(); },
+        openLog(task) {
+          this.closeLog();
+          this.currentTask = task;
+          this.logs = [];
+          const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+          const tokenParam = this.token ? `?token=${this.token}` : '';
+          const wsUrl = `${proto}://${window.location.host}/ws/task/${task.id}/log${tokenParam}`;
+          this.ws = new WebSocket(wsUrl);
+          this.ws.onmessage = (evt) => {
+            this.logs.push(evt.data);
+            if (this.logs.length > 400) this.logs.shift();
+          };
+          this.ws.onerror = () => { this.logs.push('[error] websocket error'); };
+          this.ws.onclose = () => { this.logs.push('[closed]'); };
+        },
+        download(task) {
+          const url = this.token ? `/download/${task.id}?token=${this.token}` : `/download/${task.id}`;
+          window.open(url, '_blank');
+        },
+        closeLog() {
+          if (this.ws) { this.ws.close(); this.ws = null; }
+          this.currentTask = null;
+          this.logs = [];
+          this.detailTask = null;
+        },
+        handleDatasetFile(evt) {
+          this.datasetUpload.file = evt.target.files && evt.target.files[0] ? evt.target.files[0] : null;
+        },
+        async uploadDataset() {
+          if (!this.token) {
+            this.datasetMessage = '请先登录';
+            this.datasetMessageColor = '#fca5a5';
+            return;
+          }
+          if (!this.datasetUpload.name || !this.datasetUpload.file) {
+            this.datasetMessage = '请填写数据集名称并选择文件';
+            this.datasetMessageColor = '#fca5a5';
+            return;
+          }
+          const fd = new FormData();
+          fd.append('name', this.datasetUpload.name);
+          fd.append('remark', this.datasetUpload.remark || '');
+          fd.append('file', this.datasetUpload.file);
+          this.datasetMessage = '';
+          try {
+            const resp = await fetch('/datasets/upload', {
+              method: 'POST',
+              headers: this.authHeaders('file'),
+              body: fd
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || '上传失败');
+            this.datasetMessage = `上传成功：${data.name}`;
+            this.datasetMessageColor = '#94f7c5';
+            this.datasetUpload = { name: '', remark: '', file: null };
+            this.fetchDatasets();
+          } catch (e) {
+            this.datasetMessage = e.message;
+            this.datasetMessageColor = '#fca5a5';
+          }
+        },
+        canDeleteDataset(ds) {
+          return ds.visibility === 'private' && this.currentUser.user_id && ds.owner_id === this.currentUser.user_id;
+        },
+        async deleteDataset(ds) {
+          if (!this.canDeleteDataset(ds)) return;
+          if (!confirm(`确认删除数据集 ${ds.name} 及其上传文件？`)) return;
+          try {
+            const resp = await fetch(`/datasets/${ds.id}`, { method: 'DELETE', headers: this.authHeaders() });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || '删除失败');
+            this.datasetMessage = '删除成功';
+            this.datasetMessageColor = '#94f7c5';
+            this.fetchDatasets();
+          } catch (e) {
+            this.datasetMessage = e.message;
+            this.datasetMessageColor = '#fca5a5';
+          }
+        },
+        async updateDatasetRemark(ds) {
+          const remark = prompt('请输入备注', ds.remark || '');
+          if (remark === null) return;
+          try {
+            const resp = await fetch(`/datasets/${ds.id}/remark`, {
+              method: 'PATCH',
+              headers: this.authHeaders(),
+              body: JSON.stringify({ remark })
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || '更新失败');
+            this.datasetMessage = '备注已更新';
+            this.datasetMessageColor = '#94f7c5';
+            this.fetchDatasets();
+          } catch (e) {
+            this.datasetMessage = e.message;
+            this.datasetMessageColor = '#fca5a5';
+          }
+        },
+
+        datasetById(id) {
+          const did = String(id || '');
+          return this.datasets.find(d => String(d.id) === did) || null;
+        },
+        async previewDataset(ds) {
+          const url = `/datasets/${ds.id}/preview?limit=50`;
+          try {
+            const resp = await fetch(url, { headers: this.authHeaders() });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || '预览失败');
+            this.datasetOps.previewText = JSON.stringify(data.preview || [], null, 2);
+            this.datasetOps.message = '预览成功';
+            this.datasetOps.ok = true;
+          } catch (e) {
+            this.datasetOps.message = e.message;
+            this.datasetOps.ok = false;
+          }
+        },
+        async downloadDataset(ds) {
+          const url = this.token ? `/datasets/${ds.id}/download?token=${this.token}` : `/datasets/${ds.id}/download`;
+          window.open(url, '_blank');
+        },
+        async previewSelectedDataset() {
+          const ds = this.datasetById(this.datasetOps.sourceId);
+          if (!ds) return;
+          this.datasetOps.loading = true;
+          this.datasetOps.currentAction = '预览';
+          this.datasetOps.message = '正在读取预览内容…';
+          this.datasetOps.ok = true;
+          await this.previewDataset(ds);
+          this.datasetOps.loading = false;
+          this.datasetOps.currentAction = '';
+        },
+        downloadSelectedDataset() {
+          const ds = this.datasetById(this.datasetOps.sourceId);
+          if (!ds) return;
+          this.downloadDataset(ds);
+        },
+        async runDatasetClean() {
+          if (!this.token) {
+            this.datasetOps.message = '请先登录';
+            this.datasetOps.ok = false;
+            return;
+          }
+          const ds = this.datasetById(this.datasetOps.sourceId);
+          if (!ds) return;
+          this.datasetOps.loading = true;
+          this.datasetOps.currentAction = '清洗';
+          this.datasetOps.message = '';
+          try {
+            this.datasetOps.message = '已开始清洗，正在处理中…（请勿关闭页面）';
+            this.datasetOps.ok = true;
+            const resp = await fetch(`/datasets/${ds.id}/clean`, {
+              method: 'POST',
+              headers: this.authHeaders(),
+              body: JSON.stringify({ new_name: this.datasetOps.clean.new_name, remark: this.datasetOps.clean.remark || '' })
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || '清洗失败');
+            this.datasetOps.message = `清洗成功：${data.name}`;
+            this.datasetOps.ok = true;
+            this.fetchDatasets();
+          } catch (e) {
+            this.datasetOps.message = e.message;
+            this.datasetOps.ok = false;
+          } finally {
+            this.datasetOps.loading = false;
+            this.datasetOps.currentAction = '';
+          }
+        },
+        async runDatasetGenerate() {
+          if (!this.token) {
+            this.datasetOps.message = '请先登录';
+            this.datasetOps.ok = false;
+            return;
+          }
+          const ds = this.datasetById(this.datasetOps.sourceId);
+          if (!ds) return;
+          this.datasetOps.loading = true;
+          this.datasetOps.currentAction = '生成';
+          this.datasetOps.message = '';
+          try {
+            this.datasetOps.message = '已开始生成，正在调用模型服务…（可能耗时较长）';
+            this.datasetOps.ok = true;
+            const payload = Object.assign({}, this.datasetOps.gen, {
+              api_key: this.datasetOps.llm.api_key,
+              base_url: this.normalizeBaseUrl(this.datasetOps.llm.base_url),
+              model: this.datasetOps.llm.model
+            });
+            const resp = await fetch(`/datasets/${ds.id}/generate`, {
+              method: 'POST',
+              headers: this.authHeaders(),
+              body: JSON.stringify(payload)
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || '生成失败');
+            this.datasetOps.message = `生成成功：${data.name}`;
+            this.datasetOps.ok = true;
+            this.fetchDatasets();
+          } catch (e) {
+            this.datasetOps.message = e.message;
+            this.datasetOps.ok = false;
+          } finally {
+            this.datasetOps.loading = false;
+            this.datasetOps.currentAction = '';
+          }
+        },
+        async runDatasetAugment() {
+          if (!this.token) {
+            this.datasetOps.message = '请先登录';
+            this.datasetOps.ok = false;
+            return;
+          }
+          const ds = this.datasetById(this.datasetOps.sourceId);
+          if (!ds) return;
+          this.datasetOps.loading = true;
+          this.datasetOps.currentAction = '增强';
+          this.datasetOps.message = '';
+          try {
+            this.datasetOps.message = '已开始增强，正在调用模型服务并做相似度过滤…（可能耗时较长）';
+            this.datasetOps.ok = true;
+            const payload = Object.assign({}, this.datasetOps.aug, {
+              api_key: this.datasetOps.llm.api_key,
+              base_url: this.normalizeBaseUrl(this.datasetOps.llm.base_url),
+              model: this.datasetOps.llm.model
+            });
+            const resp = await fetch(`/datasets/${ds.id}/augment`, {
+              method: 'POST',
+              headers: this.authHeaders(),
+              body: JSON.stringify(payload)
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || '增强失败');
+            this.datasetOps.message = `增强成功：${data.name}`;
+            this.datasetOps.ok = true;
+            this.fetchDatasets();
+          } catch (e) {
+            this.datasetOps.message = e.message;
+            this.datasetOps.ok = false;
+          } finally {
+            this.datasetOps.loading = false;
+            this.datasetOps.currentAction = '';
+          }
+        },
+        loadInferenceState() {
+          const raw = localStorage.getItem('inferenceState');
+          if (!raw) return;
+          try {
+            const parsed = JSON.parse(raw);
+            this.inferenceState = { sessionId: parsed.sessionId || parsed.session_id || null, status: parsed.status || 'idle' };
+          } catch (_) {}
+        },
+        saveInferenceState() { localStorage.setItem('inferenceState', JSON.stringify({ sessionId: this.inferenceState.sessionId, status: this.inferenceState.status })); },
+        async deployInference() {
+          if (!this.token) {
+            this.inferenceMessage = '请先登录';
+            this.inferenceMessageColor = '#fca5a5';
+            return;
+          }
+          if (!this.inferenceForm.task_id.trim()) {
+            this.inferenceMessage = '请输入训练任务 ID';
+            this.inferenceMessageColor = '#fca5a5';
+            return;
+          }
+          this.inferenceLoading = true;
+          this.inferenceMessage = '';
+          try {
+            const payload = { task_id: this.inferenceForm.task_id.trim(), model_path: this.inferenceForm.model_path || null };
+            const resp = await fetch('/inference/deploy', { method: 'POST', headers: this.authHeaders(), body: JSON.stringify(payload) });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || '部署失败');
+            this.inferenceState = { sessionId: data.session_id, status: data.status || 'running' };
+            this.inferenceMessage = '部署成功';
+            this.inferenceMessageColor = '#94f7c5';
+            this.saveInferenceState();
+          } catch (e) {
+            this.inferenceMessage = e.message;
+            this.inferenceMessageColor = '#fca5a5';
+          } finally {
+            this.inferenceLoading = false;
+          }
+        },
+        async stopInference() {
+          if (!this.token) {
+            this.inferenceMessage = '请先登录';
+            this.inferenceMessageColor = '#fca5a5';
+            return;
+          }
+          this.inferenceLoading = true;
+          this.inferenceMessage = '';
+          try {
+            const resp = await fetch('/inference/stop', { method: 'POST', headers: this.authHeaders(), body: JSON.stringify({ session_id: this.inferenceState.sessionId }) });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || '卸载失败');
+            this.inferenceState = { sessionId: null, status: 'stopped' };
+            this.inferenceMessage = '已卸载';
+            this.inferenceMessageColor = '#94f7c5';
+            this.saveInferenceState();
+          } catch (e) {
+            this.inferenceMessage = e.message;
+            this.inferenceMessageColor = '#fca5a5';
+          } finally {
+            this.inferenceLoading = false;
+          }
+        },
+        loadChatHistory() {
+          const raw = localStorage.getItem('chatHistory');
+          if (!raw) return;
+          try { this.chatHistory = JSON.parse(raw) || []; } catch (_) {}
+        },
+        saveChatHistory() { localStorage.setItem('chatHistory', JSON.stringify(this.chatHistory.slice(-30))); },
+        clearChat() { this.chatHistory = []; this.chatInput = ''; this.saveChatHistory(); },
+        async sendChat() {
+          if (!this.token) {
+            this.inferenceMessage = '请先登录';
+            this.inferenceMessageColor = '#fca5a5';
+            return;
+          }
+          if (this.inferenceState.status !== 'running') {
+            this.inferenceMessage = '请先部署推理服务';
+            this.inferenceMessageColor = '#fca5a5';
+            return;
+          }
+          const prompt = this.chatInput.trim();
+          if (!prompt) return;
+          this.chatLoading = true;
+          this.chatHistory.push({ role: 'user', content: prompt });
+          this.chatInput = '';
+          try {
+            const resp = await fetch('/inference/chat', {
+              method: 'POST',
+              headers: this.authHeaders(),
+              body: JSON.stringify({ prompt, session_id: this.inferenceState.sessionId })
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || '对话失败');
+            const reply = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || (typeof data === 'object' ? JSON.stringify(data) : String(data));
+            this.chatHistory.push({ role: 'assistant', content: reply });
+            this.saveChatHistory();
+            this.inferenceMessage = '对话成功';
+            this.inferenceMessageColor = '#94f7c5';
+          } catch (e) {
+            this.inferenceMessage = e.message;
+            this.inferenceMessageColor = '#fca5a5';
+          } finally {
+            this.chatLoading = false;
+          }
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html><!DOCTYPE html>

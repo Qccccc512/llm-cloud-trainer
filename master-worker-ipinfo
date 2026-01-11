@@ -1,0 +1,4 @@
+master_private_url=http://127.0.0.1:8000
+master_public_url=http://127.0.0.1:8000
+worker_private_url=http://127.0.0.1:8001
+worker_public_url=http://127.0.0.1:8001

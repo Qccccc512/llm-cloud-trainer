@@ -1,0 +1,29 @@
+# 推理 / API 部署基础配置
+
+# 模型
+model_name_or_path: Qwen/Qwen2.5-0.5B-Instruct
+adapter_name_or_path:
+finetuning_type: lora
+template: qwen
+infer_backend: huggingface
+infer_dtype: auto
+
+# 生成相关默认值（可在请求中覆写）
+do_sample: true
+temperature: 0.95
+top_p: 0.7
+top_k: 50
+num_beams: 1
+max_length: 1024
+max_new_tokens: 1024
+repetition_penalty: 1.0
+length_penalty: 1.0
+default_system:
+skip_special_tokens: true
+
+# 杂项
+trust_remote_code: false
+low_cpu_mem_usage: true
+flash_attn: auto
+use_fast_tokenizer: true
+cache_dir:

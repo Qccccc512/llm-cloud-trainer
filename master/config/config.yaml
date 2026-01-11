@@ -1,0 +1,5 @@
+cloud_llm_root: /home/ubuntu/CloudComputing/cloud-llm
+project_root: /home/ubuntu/CloudComputing
+invite_code: llamaCloud
+master_private_url: http://127.0.0.1:8000
+master_public_url: http://127.0.0.1:8000

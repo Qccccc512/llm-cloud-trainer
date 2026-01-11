@@ -1,0 +1,188 @@
+# 训练基础配置（源自参数文档的默认值）
+# 用户可通过 config_overrides 进行覆写。
+
+# --- Model ---
+model_name_or_path: Qwen/Qwen2.5-0.5B-Instruct
+adapter_name_or_path:
+adapter_folder:
+model_revision: main
+cache_dir:
+use_fast_tokenizer: true
+resize_vocab: false
+split_special_tokens: false
+low_cpu_mem_usage: true
+rope_scaling:
+flash_attn: auto
+shift_attn: false
+mixture_of_depths:
+use_unsloth: false
+use_unsloth_gc: false
+enable_liger_kernel: false
+moe_aux_loss_coef:
+disable_gradient_checkpointing: false
+use_reentrant_gc: true
+upcast_layernorm: false
+upcast_lmhead_output: false
+train_from_scratch: false
+trust_remote_code: false
+infer_backend: huggingface
+offload_folder: offload
+infer_dtype: auto
+hf_hub_token:
+ms_hub_token:
+om_hub_token:
+print_param_status: false
+
+# --- Finetuning / Method ---
+stage: sft
+finetuning_type: lora
+use_llama_pro: false
+use_adam_mini: false
+freeze_vision_tower: true
+freeze_multi_modal_projector: true
+compute_accuracy: false
+disable_shuffling: false
+plot_loss: false
+include_effective_tokens_per_second: false
+
+# --- LoRA ---
+additional_target:
+lora_alpha:
+lora_dropout: 0
+lora_rank: 8
+lora_target: all
+loraplus_lr_ratio:
+loraplus_lr_embedding: 1.0e-6
+use_rslora: false
+use_dora: false
+pissa_init: false
+pissa_iter: 16
+pissa_convert: false
+create_new_adapter: false
+
+# --- RLHF (defaults mostly neutral) ---
+pref_beta: 0.1
+pref_ftx: 0.0
+pref_loss: sigmoid
+dpo_label_smoothing: 0.0
+kto_chosen_weight: 1.0
+kto_rejected_weight: 1.0
+simpo_gamma: 0.5
+ppo_buffer_size: 1
+ppo_epochs: 4
+ppo_score_norm: false
+ppo_target: 6.0
+ppo_whiten_rewards: false
+ref_model:
+ref_model_adapters:
+ref_model_quantization_bit:
+reward_model:
+reward_model_adapters:
+reward_model_quantization_bit:
+reward_model_type: lora
+
+# --- Freeze ---
+freeze_trainable_layers: 2
+freeze_trainable_modules: all
+freeze_extra_modules:
+
+# --- Apollo ---
+use_apollo: false
+apollo_target: all
+apollo_rank: 16
+apollo_update_interval: 200
+apollo_scale: 32.0
+apollo_proj: random
+apollo_proj_type: std
+apollo_scale_type: channel
+apollo_layerwise: false
+apollo_scale_front: false
+
+# --- BAdam ---
+use_badam: false
+badam_mode: layer
+badam_start_block:
+badam_switch_mode: ascending
+badam_switch_interval: 50
+badam_update_ratio: 0.05
+badam_mask_mode: adjacent
+badam_verbose: 0
+
+# --- GaLore ---
+use_galore: false
+galore_target: all
+galore_rank: 16
+galore_update_interval: 200
+galore_scale: 0.25
+galore_proj_type: std
+galore_layerwise: false
+
+# --- Data ---
+dataset: identity
+eval_dataset:
+eval_on_each_dataset: false
+dataset_dir: /app/data
+media_dir:
+data_shared_file_system: false
+template: qwen
+cutoff_len: 2048
+train_on_prompt: false
+mask_history: false
+streaming: false
+buffer_size: 16384
+mix_strategy: concat
+interleave_probs:
+overwrite_cache: false
+preprocessing_batch_size: 1000
+preprocessing_num_workers:
+max_samples:
+eval_num_beams:
+ignore_pad_token_for_loss: true
+val_size: 0.1
+packing:
+neat_packing: false
+tool_format:
+tokenized_path:
+
+# --- Output ---
+output_dir: /app/output/default_task
+overwrite_output_dir: true
+plot_loss: false
+
+# --- Train loop ---
+do_train: true
+do_eval: false
+do_predict: false
+per_device_train_batch_size: 2
+per_device_eval_batch_size: 4
+gradient_accumulation_steps: 4
+learning_rate: 1.0e-4
+num_train_epochs: 3.0
+logging_steps: 10
+save_steps: 100
+warmup_ratio: 0.1
+fp16: true
+bf16: false
+pure_bf16: false
+seed: 42
+ddp_timeout: 180000000
+
+# --- Quantization (train-time or load-time) ---
+quantization_method: bitsandbytes
+quantization_bit:
+quantization_type: nf4
+double_quantization: true
+quantization_device_map:
+
+# --- Generation defaults (for eval/predict convenience) ---
+do_sample: true
+temperature: 0.95
+top_p: 0.7
+top_k: 50
+num_beams: 1
+max_length: 1024
+max_new_tokens: 1024
+repetition_penalty: 1.0
+length_penalty: 1.0
+default_system:
+skip_special_tokens: true

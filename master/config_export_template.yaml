@@ -1,0 +1,16 @@
+### 已弃用，现在使用master/templates下的模板
+### model
+model_name_or_path: {{ model_name }}
+{% if adapter_path %}adapter_name_or_path: {{ adapter_path }}
+finetuning_type: lora
+{% endif %}
+template: {{ template }}
+
+### export
+export_dir: /app/output/{{ export_id }}/export
+export_size: 2
+export_device: cpu
+export_legacy_format: false
+{% if quantization_bit is not none %}export_quantization_bit: {{ quantization_bit }}
+{% endif %}{% if quantization_dataset %}export_quantization_dataset: {{ quantization_dataset }}
+{% endif %}

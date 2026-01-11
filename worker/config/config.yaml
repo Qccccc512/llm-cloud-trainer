@@ -1,0 +1,7 @@
+host_base_path: /home/ubuntu/CloudComputing/cloud-llm
+log_base_path: /home/ubuntu/CloudComputing/cloud-llm/logs
+hf_cache_path: /home/ubuntu/CloudComputing/cloud-llm/hf-cache
+master_url: http://127.0.0.1:8000
+worker_url: http://127.0.0.1:8001
+worker_advertise_url: http://127.0.0.1:8001
+worker_public_url: http://127.0.0.1:8001

@@ -1,0 +1,35 @@
+# 导出 / 合并 / 量化基础配置
+
+# model
+model_name_or_path: Qwen/Qwen2.5-0.5B-Instruct
+adapter_name_or_path:
+finetuning_type: lora
+template: qwen
+quantization_method: bitsandbytes
+quantization_type: nf4
+double_quantization: true
+quantization_device_map:
+
+# export
+export_dir: /app/output/default_export/export
+export_size: 2
+export_device: cpu
+export_legacy_format: false
+export_quantization_bit:
+export_quantization_dataset:
+export_quantization_nsamples: 128
+export_quantization_maxlen: 1024
+export_hub_model_id:
+
+# 生成相关默认值（下游脚本需要时使用）
+do_sample: true
+temperature: 0.95
+top_p: 0.7
+top_k: 50
+num_beams: 1
+max_length: 1024
+max_new_tokens: 1024
+repetition_penalty: 1.0
+length_penalty: 1.0
+default_system:
+skip_special_tokens: true

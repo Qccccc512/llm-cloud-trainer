@@ -1,0 +1,27 @@
+### 已弃用，现在使用master/templates下的模板
+model_name_or_path: {{ model_name }}
+{% if adapter_path %}adapter_name_or_path: {{ adapter_path }}
+finetuning_type: lora
+{% endif %}
+template: {{ template }}
+
+### method
+stage: sft
+do_train: false
+do_eval: true
+
+### dataset
+dataset: {{ dataset }}
+eval_dataset: {{ dataset }}
+dataset_dir: /app/data
+cutoff_len: 1024
+
+### output
+output_dir: /app/output/{{ eval_id }}/eval
+overwrite_output_dir: true
+
+### eval
+per_device_eval_batch_size: {{ batch_size }}
+max_samples: {{ max_samples }}
+seed: {{ seed }}
+logging_steps: 10
